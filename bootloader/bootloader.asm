@@ -1,6 +1,6 @@
 
 BOOT_ADDR EQU 0x7c00
-
+PROTECTED_MODE_STACK_POSITION EQU 0x90000
 
 [bits 16]
 [org BOOT_ADDR]
@@ -54,7 +54,7 @@ init_protected_mode:
 	mov fs, ax
 	mov gs, ax
 
-	mov ebp, 0x90000  ; reset the stack position
+	mov ebp, PROTECTED_MODE_STACK_POSITION  ; reset the stack position
 	mov esp, ebp
 
 	call begin_protected_mode
