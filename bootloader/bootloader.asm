@@ -2,6 +2,9 @@
 BOOT_ADDR EQU 0x7c00
 PROTECTED_MODE_STACK_POSITION EQU 0x90000
 
+KERNEL_ADDR EQU 0x1000
+SECTORS_TO_READ EQU 15
+
 [bits 16]
 [org BOOT_ADDR]
 
@@ -10,18 +13,9 @@ PROTECTED_MODE_STACK_POSITION EQU 0x90000
 
 ; Program start
 
-mov [boot_drive], dl
+mov [boot_drive], dl ; save boot drive for later
 
-mov dh, 2 ; attempt to load sectors
-mov bx, 0x9000 ; load data into [es:0x9000]
-call boot_disk_load
-
-mov dx, [0x9000]
-call print_hex
-
-mov dx, [0x9000 + 512]
-call print_hex
-
+call load_kernel
 call switch_to_pm
 jmp $
 
@@ -39,6 +33,20 @@ switch_to_pm:
 %include "print_hex.asm"
 %include "disk.asm"
 %include "gdt.asm"
+
+load_kernel:
+    mov bx, kernel_loading_message
+    call print_string
+
+    mov bx, KERNEL_ADDR ; load data into KERNEL_ADDR
+    mov dh, SECTORS_TO_READ ; attempt to load sectors
+    mov dl, [boot_drive]
+    call boot_disk_load
+
+    mov bx, kernel_loaded_message
+    call print_string
+
+    ret
 
 ; ---- protected mode routines
 [bits 32]
@@ -66,23 +74,18 @@ begin_protected_mode:
 	mov ebx, pm_message
 	call print_string_pm
 
+    call KERNEL_ADDR
+
 	jmp $
 
 
 ; Global variables
-some_data: db "z"
-
-my_string: db "Hello world! ", 0
-
 pm_message: db "Entered into Protected mode.", 0
-
+kernel_loading_message: db "Loading kernel....", 0
+kernel_loaded_message: db "Kernel loaded!", 0
 boot_drive: db 0
 
 ; ------- Padding and magic BIOS boot number
 
 times 510-($-$$) db 0
 dw 0xaa55
-
-; past first sector of disk
-times 256 dw 0xdada
-times 256 dw 0xface

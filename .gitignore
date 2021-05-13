@@ -1,2 +1,3 @@
 bootloader/bootloader.bin
 .idea
+./build
